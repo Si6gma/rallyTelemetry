@@ -1,19 +1,27 @@
 #include "gps.h"
 
-#define GPS_BUFFER_SIZE 256
-
 static char gpsBuffer[GPS_BUFFER_SIZE];
 static int bufferIndex = 0;
+HardwareSerial gpsSerial(2);
+
+gpsData_t gps;
+
+void parseGNGGASentence(const char *sentence);
+double convertToDecimalDegrees(double raw);
 
 void initGPS() {
+  gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2); 
+  delay(1000);
+  gpsSerial.print("$PCAS02,100*1E\r\n"); 
+
   gps.latitude = 0.0;
   gps.longitude = 0.0;
   gps.fixQuality = 0;
   gps.satCount = 0;
 }
 
-void recieveGPSData(gpsData * data, HardwareSerial * gpsSerial) {
-  while (gpsSerial->available() > 0) {
+void updateGPSData() {
+  while (gpsSerial.available() > 0) {
     char c = gpsSerial.read();
     // Serial.print(c);
 
@@ -92,4 +100,8 @@ void displayGPSData() {
   printf("Latitude: %.6f\r\n", gps.latitude);
   printf("Longitude: %.6f\r\n", gps.longitude);
   printf("Fix Quality: %d | Satellites: %d\r\n", gps.fixQuality, gps.satCount);
+}
+
+gpsData_t getGpsData() {
+  return gps;
 }
