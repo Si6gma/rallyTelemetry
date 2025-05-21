@@ -1,22 +1,19 @@
 #include "gps.h"
-#include "sdReader.h"
+#include "storage.h"
 #include "accelerometer.h"
 
-void setup(){
+void setup() {
   // Serial Monitor
   Serial.begin(115200);
 
   initGPS();
   initAccelerometer();
-  
-  Serial.println("GPS started at 9600 baud rate, 10Hz");
+  initSD();
 }
 
-void loop(){
+void loop() {
   updateGPSData();
   updateAccelerometerData();
 
-  displayGPSData();
-  delay(1000);
-  Serial.println("-------------------------------");
+  getGForce();
 }

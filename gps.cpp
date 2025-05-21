@@ -4,20 +4,22 @@ static char gpsBuffer[GPS_BUFFER_SIZE];
 static int bufferIndex = 0;
 HardwareSerial gpsSerial(2);
 
-gpsData_t gps;
+extern gpsData_t gps;
 
 void parseGNGGASentence(const char *sentence);
 double convertToDecimalDegrees(double raw);
 
 void initGPS() {
-  gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2); 
+  gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2);
   delay(1000);
-  gpsSerial.print("$PCAS02,100*1E\r\n"); 
+  gpsSerial.print("$PCAS02,100*1E\r\n");
 
   gps.latitude = 0.0;
   gps.longitude = 0.0;
   gps.fixQuality = 0;
   gps.satCount = 0;
+
+  Serial.println("GPS started at 9600 baud rate, 10Hz");
 }
 
 void updateGPSData() {
@@ -52,56 +54,42 @@ void parseGNGGASentence(const char *sentence) {
   char *token;
   int field = 0;
 
-  double latitude = 0.0, longitude = 0.0;
-  int fixQuality = 0, satCount = 0;
-
   while ((token = strsep(&ptr, ",")) != NULL) {
     field++;
 
     switch (field) {
+      case 2:  // UTC Time
+        gps.time = String(token);
+        break;
+
       case 3:  // Latitude
-        latitude = convertToDecimalDegrees(atof(token));
+        gps.latitude = convertToDecimalDegrees(atof(token));
         break;
 
       case 4:  // N/S
         if (*token == 'S')
-          latitude *= -1;
+          gps.latitude *= -1;
         break;
 
       case 5:  // Longitude
-        longitude = convertToDecimalDegrees(atof(token));
+        gps.longitude = convertToDecimalDegrees(atof(token));
         break;
 
       case 6:  // E/W
         if (*token == 'W')
-          longitude *= -1;
+          gps.longitude *= -1;
         break;
 
       case 7:  // Fix quality
-        fixQuality = atoi(token);
+        gps.fixQuality = atoi(token);
         break;
 
       case 8:  // Satellite count
-        satCount = atoi(token);
+        gps.satCount = atoi(token);
         break;
 
       default:
         break;
     }
   }
-
-  gps.latitude = latitude;
-  gps.longitude = longitude;
-  gps.fixQuality = fixQuality;
-  gps.satCount = satCount;
-}
-
-void displayGPSData() {
-  printf("Latitude: %.6f\r\n", gps.latitude);
-  printf("Longitude: %.6f\r\n", gps.longitude);
-  printf("Fix Quality: %d | Satellites: %d\r\n", gps.fixQuality, gps.satCount);
-}
-
-gpsData_t getGpsData() {
-  return gps;
 }

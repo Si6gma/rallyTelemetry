@@ -10,7 +10,7 @@
 
 #include <stdbool.h>
 
- // Define the RX and TX pins for Serial 2
+// Define the RX and TX pins for Serial 2
 #define RXD2 16
 #define TXD2 17
 #define GPS_BAUD 9600
@@ -20,6 +20,7 @@
 // GPS Data Structure
 typedef struct
 {
+  double time;
   double latitude;   // Current Latitude Value
   double longitude;  // Current Longitude Value
   int satCount;      // If Satellite Count is above 8, then good connection
@@ -30,6 +31,5 @@ typedef struct
 void initGPS();
 void updateGPSData();
 void displayGPSData();
-gpsData_t getGpsData();
 
 #endif  // GPS_H

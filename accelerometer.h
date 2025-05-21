@@ -7,11 +7,10 @@
 
 #define g 9.80665;
 
-typedef struct 
+typedef struct
 {
   float x;
   float y;
-  float z;
 } accelerometer_t;
 
 float getGForce();
