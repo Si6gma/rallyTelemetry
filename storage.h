@@ -15,5 +15,7 @@ void initSD();
 void SDWriteln(char *filename, String data);
 bool SDFileExists(char *filename);
 bool SDRenameFile(char *prevFilename, char *newFilename);
+String formatLogData();
+String logHeaderData();
 
 #endif
