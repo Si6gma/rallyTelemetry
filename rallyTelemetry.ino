@@ -20,15 +20,19 @@ void setup() {
 unsigned long ms = 0;
 
 void loop() {
-  updateGPSData();
-  updateAccelerometerData();
-  getGForce();
+  // updateGPSData();
+  // updateAccelerometerData();
+  // getGForce();
 
-  unsigned long currentMillis = millis();
+  // unsigned long currentMillis = millis();
 
-  if (currentMillis - ms >= logDelayMs) {
-    SDFileWriteln("live.csv", formatLogData(gps.time, gps.latitude, gps.longitude, getGForce(), gps.satCount));
+  // if (currentMillis - ms >= logDelayMs) {
+  //   // SDFileWriteln("live.csv", formatLogData(gps.time, gps.latitude, gps.longitude, getGForce(), gps.satCount));
 
-    ms = currentMillis;
-  }
+  //   ms = currentMillis;
+  // }
+
+  SDFileWriteln("helloworld.csv", "asd,asd,asd,asd,asd");
+
+  Serial.println("hello");
 }
