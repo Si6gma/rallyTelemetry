@@ -12,10 +12,10 @@
 #define SD_CS 5
 
 void initSD();
-void SDWriteln(char *filename, String data);
-bool SDFileExists(char *filename);
-bool SDRenameFile(char *prevFilename, char *newFilename);
-String formatLogData();
+void SDFileWriteln(String filename, String data);
+bool SDFileExists(String filename);
+bool SDFileRename(String prevFilename, String newFilename);
+String formatLogData(double time, double latitude, double longitude, float gForce, int satCount);
 String logHeaderData();
 
 #endif

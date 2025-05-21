@@ -1,7 +1,7 @@
 #include "accelerometer.h"
 
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified();
-extern accelerometer_t accelerometerData;
+accelerometer_t accelerometerData;
 
 float getGForce() {
   float gx = accelerometerData.x / g;

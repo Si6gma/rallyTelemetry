@@ -10,24 +10,30 @@ void initSD() {
   }
 }
 
-void SDWriteln(char *filename, String data) {
+void SDFileWriteln(String filename, String data) {
   file = SD.open(filename, FILE_WRITE);
 
+  if (!file) {
+    return;
+  }
+
   file.println(data);
+
+  file.close();
 }
 
-bool SDFileExists(char *filename) { 
+bool SDFileExists(String filename) { 
   return SD.exists(filename);
 }
 
-bool SDRenameFile(char *prevFilename, char* newFilename) {
+bool SDRenameFile(String prevFilename, String newFilename) {
   return SD.rename(prevFilename, newFilename);
 }
 
-String formatLogData() {
-  return String(gpsData.time, 2) + "," + String(gpsData.latitude, 6) + "," + String(gpsData.longitude, 6) + "," + String(getGForce()) + "," + String(gpsData.satCount);
+String formatLogData(double time, double latitude, double longitude, float gForce, int satCount) {
+  return String(time, 3) + "," + String(latitude, 6) + "," + String(longitude, 6) + "," + String(gForce) + "," + String(satCount);
 }
 
-String logReaderData() {
-  return String("UTC Time,Latitude,Longitude,G-Force,satCount");
+String logHeaderData() {
+  return String("UTC Time,Latitude,Longitude,GForce,satCount");
 }

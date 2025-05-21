@@ -4,7 +4,7 @@ static char gpsBuffer[GPS_BUFFER_SIZE];
 static int bufferIndex = 0;
 HardwareSerial gpsSerial(2);
 
-extern gpsData_t gps;
+gpsData_t gps;
 
 void parseGNGGASentence(const char *sentence);
 double convertToDecimalDegrees(double raw);
@@ -59,7 +59,7 @@ void parseGNGGASentence(const char *sentence) {
 
     switch (field) {
       case 2:  // UTC Time
-        gps.time = String(token);
+        gps.time = atof(token);
         break;
 
       case 3:  // Latitude
