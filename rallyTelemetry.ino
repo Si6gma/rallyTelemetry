@@ -2,7 +2,7 @@
 #include "storage.h"
 #include "accelerometer.h"
 
-void setup(){
+void setup() {
   // Serial Monitor
   Serial.begin(115200);
 
@@ -11,11 +11,9 @@ void setup(){
   initSD();
 }
 
-void loop(){
+void loop() {
   updateGPSData();
   updateAccelerometerData();
 
-  displayGPSData();
-  delay(1000);
-  Serial.println("-------------------------------");
+  getGForce();
 }
