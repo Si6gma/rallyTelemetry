@@ -11,7 +11,7 @@ void initSD() {
 }
 
 void SDWriteln(char *filename, String data) {
-  file = SD.open(filename, FILE_APPEND);
+  file = SD.open(filename, FILE_WRITE);
 
   file.println(data);
 }
