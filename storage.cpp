@@ -4,20 +4,22 @@ File file;
 
 void initSD() {
   SPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
-  if (!SD.begin(SD_CS))
+  if (!SD.begin(SD_CS)) {
     Serial.println("ERROR IN BEGINNING SD");
     while (1) {}
-  {
+  }
 }
 
-void write(char *filename, char *data) {
+void SDWriteln(char *filename, String data) {
+  file = SD.open(filename, FILE_APPEND);
 
+  file.println(data);
 }
 
-bool fileExists(char *filename) { 
-  return false;
+bool SDFileExists(char *filename) { 
+  return SD.exists(filename);
 }
 
-void renameFile(char *prevFilename, char* newFilename) {
-
+bool SDRenameFile(char *prevFilename, char* newFilename) {
+  return SD.rename(prevFilename, newFilename);
 }

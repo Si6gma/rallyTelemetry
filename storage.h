@@ -11,8 +11,8 @@
 #define SD_CS       5
 
 void initSD();
-void write(char *filename, char *data);
-bool fileExists(char *filename);
-void renameFile(char *prevFilename, char *newFilename);
+void SDWriteln(char *filename, String data);
+bool SDFileExists(char *filename);
+bool SDRenameFile(char *prevFilename, char *newFilename);
 
 #endif
