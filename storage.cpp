@@ -3,10 +3,11 @@
 File file;
 
 void initSD() {
-  if (!SD.begin(5)) {
-    Serial.println("SD card initialization error.");
+  SPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
+  if (!SD.begin(SD_CS))
+    Serial.println("ERROR IN BEGINNING SD");
     while (1) {}
-  }
+  {
 }
 
 void write(char *filename, char *data) {
