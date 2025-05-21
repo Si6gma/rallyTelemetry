@@ -1,5 +1,5 @@
 #include "gps.h"
-#include "sdReader.h"
+#include "storage.h"
 #include "accelerometer.h"
 
 void setup(){
@@ -8,8 +8,7 @@ void setup(){
 
   initGPS();
   initAccelerometer();
-  
-  Serial.println("GPS started at 9600 baud rate, 10Hz");
+  initSD();
 }
 
 void loop(){
