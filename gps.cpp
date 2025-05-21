@@ -18,6 +18,8 @@ void initGPS() {
   gps.longitude = 0.0;
   gps.fixQuality = 0;
   gps.satCount = 0;
+
+  Serial.println("GPS started at 9600 baud rate, 10Hz");
 }
 
 void updateGPSData() {
