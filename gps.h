@@ -27,6 +27,8 @@ typedef struct
   int fixQuality;    // If fix quality is 1, then GPS is connected
 } gpsData_t;
 
+extern gpsData_t gps;
+
 // Function prototypes
 void initGPS();
 void updateGPSData();
