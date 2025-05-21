@@ -23,3 +23,11 @@ bool SDFileExists(char *filename) {
 bool SDRenameFile(char *prevFilename, char* newFilename) {
   return SD.rename(prevFilename, newFilename);
 }
+
+String formatLogData() {
+  return String(gpsData.time, 2) + "," + String(gpsData.latitude, 6) + "," + String(gpsData.longitude, 6) + "," + String(getGForce()) + "," + String(gpsData.satCount);
+}
+
+String logReaderData() {
+  return String("UTC Time,Latitude,Longitude,G-Force,satCount");
+}
