@@ -13,8 +13,9 @@
 
 void initSD();
 void SDFileWriteln(String filename, String data);
+void SDFileCreate(String filename, String data);
 bool SDFileExists(String filename);
-bool SDFileRename(String prevFilename, String newFilename);
+bool SDRenameFile(String prevFilename, String newFilename);
 String formatLogData(double time, double latitude, double longitude, float gForce, int satCount);
 String logHeaderData();
 

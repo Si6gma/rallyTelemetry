@@ -8,12 +8,17 @@ void initSD() {
     Serial.println("ERROR IN BEGINNING SD");
     while (1) {}
   }
+  if (SD.cardType() == CARD_NONE) {
+    Serial.println("No SD card attached!");
+    return;
+  }
 }
 
 void SDFileWriteln(String filename, String data) {
-  file = SD.open(filename, FILE_WRITE);
+  file = SD.open(filename, FILE_APPEND);
 
   if (!file) {
+    Serial.println("File Not Made");
     return;
   }
 
@@ -22,7 +27,7 @@ void SDFileWriteln(String filename, String data) {
   file.close();
 }
 
-bool SDFileExists(String filename) { 
+bool SDFileExists(String filename) {
   return SD.exists(filename);
 }
 
