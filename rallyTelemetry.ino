@@ -5,34 +5,35 @@
 #define logDelayMs 100
 
 void setup() {
-  // Serial Monitor
   Serial.begin(115200);
+
+  delay(1000);
 
   initGPS();
   initAccelerometer();
   initSD();
 
-  if (!SDFileExists("live.csv")) {
-    SDFileWriteln("live.csv", logHeaderData());
+  delay(1000);
+
+  if (!SDFileExists("/live.csv")) {
+    Serial.println("Created live.csv");
+    SDFileWriteln("/live.csv", logHeaderData());
   }
 }
 
 unsigned long ms = 0;
 
 void loop() {
-  // updateGPSData();
-  // updateAccelerometerData();
-  // getGForce();
+  updateGPSData();
+  updateAccelerometerData();
+  getGForce();
 
-  // unsigned long currentMillis = millis();
+  unsigned long currentMillis = millis();
 
-  // if (currentMillis - ms >= logDelayMs) {
-  //   // SDFileWriteln("live.csv", formatLogData(gps.time, gps.latitude, gps.longitude, getGForce(), gps.satCount));
+  if (currentMillis - ms >= logDelayMs) {
+    SDFileWriteln("/live.csv", formatLogData(gps.time, gps.latitude, gps.longitude, getGForce(), gps.satCount));
 
-  //   ms = currentMillis;
-  // }
-
-  SDFileWriteln("helloworld.csv", "asd,asd,asd,asd,asd");
-
-  Serial.println("hello");
+    ms = currentMillis;
+    Serial.println(gps.time);
+  }
 }

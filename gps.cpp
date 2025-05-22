@@ -12,7 +12,7 @@ double convertToDecimalDegrees(double raw);
 void initGPS() {
   gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2);
   delay(1000);
-  gpsSerial.print("$PCAS02,100*1E\r\n");
+  gpsSerial.print("$PCAS02,2000*2E\r\n");
 
   gps.latitude = 0.0;
   gps.longitude = 0.0;
