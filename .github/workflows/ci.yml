@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-firmware:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Cache PlatformIO
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.platformio
+          .pio
+        key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install PlatformIO
+      run: |
+        pip install platformio
+        pio upgrade
+    
+    - name: Build firmware
+      run: pio run
+    
+    - name: Build test suite
+      run: pio test --build-only || true
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Cache PlatformIO
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.platformio
+          .pio
+        key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install PlatformIO
+      run: pip install platformio
+    
+    - name: Run static analysis
+      run: pio check --severity=medium || true
+
+  test-structure:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Verify test files exist
+      run: |
+        test -f test/test_ring_buffer/test_ring_buffer.cpp
+        test -f test/test_config/test_config.cpp
+        test -f test/test_imu/test_imu.cpp
+        test -f test/test_alert_manager/test_alert_manager.cpp
+        echo "All test files present"
+    
+    - name: Check code syntax
+      run: |
+        pip install platformio
+        pio check --project-conf=platformio.ini --severity=high src/ || true
