@@ -1,16 +1,16 @@
 # Rally Telemetry Pro - RTOS Edition
 
-> High-performance telemetry data logger for rally cars with FreeRTOS, dual-core processing, real-time streaming, and web dashboard.
+High-performance telemetry data logger for rally cars with FreeRTOS, dual-core processing, real-time streaming, and web dashboard.
 
-## ✨ What's New in Pro Version
+## What's New in Pro Version
 
-### 🚀 RTOS Architecture
+### RTOS Architecture
 - **FreeRTOS** - True multitasking with priority-based scheduling
 - **Dual-core utilization** - Sensors on Core 0, I/O on Core 1
 - **Deterministic timing** - Guaranteed sampling rates via RTOS tick
 - **Thread-safe** - Lock-free ring buffers between tasks
 
-### 📊 Enhanced Performance
+### Enhanced Performance
 | Feature | v1.0 | v2.0 Pro |
 |---------|------|----------|
 | IMU Sampling | 10Hz | **100Hz** |
@@ -20,7 +20,7 @@
 | File Size | ~1MB/hour | **~150KB/hour** |
 | Latency | Variable | **Deterministic** |
 
-### 🎯 New Features
+### New Features
 - **Web Dashboard** - Real-time visualization in browser
 - **Real-time Alerts** - G-force, roll, pitch thresholds with hysteresis
 - **WiFi Streaming** - UDP broadcast + live dashboard
@@ -30,7 +30,7 @@
 - **IMU Calibration** - Automatic bias compensation
 - **Alert History** - Track threshold violations
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -71,7 +71,7 @@
 └─────────────────────────────┴───────────────────────────────────┘
 ```
 
-## 📋 Hardware Requirements
+## Hardware Requirements
 
 ### Required Components
 | Component | Specification | Purpose |
@@ -97,11 +97,45 @@
 | LED Green | GPIO 26 | PWM capable |
 | LED Blue | GPIO 27 | PWM capable |
 
-## 🚀 Installation
+## Installation
 
 ### PlatformIO (Recommended)
 
-1. **Create `platformio.ini`:**
+1. **Install PlatformIO:**
+```bash
+pip install platformio
+```
+
+2. **Clone and build:**
+```bash
+git clone https://github.com/Si6gma/rallyTelemetry.git
+cd rallyTelemetry
+pio run --target upload
+```
+
+3. **Upload Filesystem (Dashboard):**
+```bash
+pio run --target uploadfs
+```
+
+4. **Monitor:**
+```bash
+pio device monitor
+```
+
+### Arduino IDE
+
+1. Install ESP32 board support
+2. Install libraries (see Library Dependencies below)
+3. Select board: `ESP32 Dev Module`
+4. Set CPU Frequency: `240MHz`
+5. Use [ESP32 Sketch Data Upload](https://github.com/me-no-dev/arduino-esp32fs-plugin) for dashboard files
+6. Upload
+
+## Library Dependencies
+
+### PlatformIO
+Add to `platformio.ini`:
 ```ini
 [env:esp32dev]
 platform = espressif32
@@ -118,30 +152,20 @@ lib_deps =
     adafruit/Adafruit Unified Sensor @ ^1.1.9
 ```
 
-2. **Upload Filesystem (Dashboard):**
-```bash
-# Upload dashboard files to SPIFFS
-pio run --target uploadfs
-
-# Then upload firmware
-pio run --target upload
-```
-
-3. **Monitor:**
-```bash
-pio device monitor
-```
-
 ### Arduino IDE
+Install via Library Manager:
+- `Adafruit MPU6050` by Adafruit
+- `Adafruit Unified Sensor` by Adafruit
 
-1. Install ESP32 board support
-2. Install libraries: `Adafruit MPU6050`, `Adafruit Unified Sensor`
-3. Select board: `ESP32 Dev Module`
-4. Set CPU Frequency: `240MHz`
-5. Use [ESP32 Sketch Data Upload](https://github.com/me-no-dev/arduino-esp32fs-plugin) for dashboard files
-6. Upload
+### Built-in Libraries (ESP32 Core)
+- WiFi
+- WebServer
+- SPIFFS
+- ESPmDNS
+- SD
+- FreeRTOS
 
-## 💻 Usage
+## Usage
 
 ### First Run
 
@@ -162,12 +186,12 @@ IP: 192.168.4.1
 
 Open `http://192.168.4.1` or `http://rally-telemetry.local` in your browser:
 
-#### Features:
+**Features:**
 - **Live Data** - Real-time G-force, speed, satellite count
 - **File Manager** - Download binary or CSV logs
 - **System Status** - View heap, WiFi mode, signal strength
 
-#### Dashboard Pages:
+**Dashboard Pages:**
 | Page | URL | Description |
 |------|-----|-------------|
 | Main | `/` | Redirects to dashboard |
@@ -189,7 +213,7 @@ Open `http://192.168.4.1` or `http://rally-telemetry.local` in your browser:
 | `a` | Alert status |
 | `h` | Help |
 
-## 📊 Data Format
+## Data Format
 
 ### Binary Log Structure
 ```c
@@ -258,7 +282,7 @@ Timestamp,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ,TempC,Latitude,Longitude,Altitu
 12345,0.123,-0.456,9.81,1.2,-0.5,0.1,25.4,40.712800,-74.006000,50.0,85.5,180.0,8,1
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 Edit `src/core/config.h`:
 
@@ -278,15 +302,15 @@ const char* WIFI_AP_SSID = "RallyTelemetry";
 const char* WIFI_AP_PASS = "rally2024";
 ```
 
-## 🚨 Alert System
+## Alert System
 
 ### Threshold Types
 | Type | Warning | Critical |
 |------|---------|----------|
 | G-Force | 2.5G | 3.5G |
-| Roll | 25° | 35° |
-| Pitch | 20° | 30° |
-| Temperature | 60°C | 75°C |
+| Roll | 25 deg | 35 deg |
+| Pitch | 20 deg | 30 deg |
+| Temperature | 60 degC | 75 degC |
 
 ### Alert Behavior
 - **Hysteresis**: 10-15% below threshold to clear
@@ -294,7 +318,7 @@ const char* WIFI_AP_PASS = "rally2024";
 - **Rate limiting**: Max 1 alert per type per second
 - **History**: Last 32 alerts stored
 
-## 📈 Performance Metrics
+## Performance Metrics
 
 ### Measured Performance
 | Metric | Value |
@@ -311,7 +335,7 @@ const char* WIFI_AP_PASS = "rally2024";
 - **Binary log**: ~150 KB/hour
 - **WiFi stream**: ~1.4 KB/s @ 20Hz
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### "IMU buffer full"
 - Compute task not keeping up
@@ -334,7 +358,7 @@ const char* WIFI_AP_PASS = "rally2024";
 - Upload SPIFFS filesystem: `pio run --target uploadfs`
 - Check files exist in `data/dashboard/`
 
-## 🗺️ Roadmap
+## Roadmap
 
 ### v2.1 Planned
 - [ ] Bluetooth LE configuration
@@ -349,14 +373,14 @@ const char* WIFI_AP_PASS = "rally2024";
 - [ ] Predictive lap timing
 - [ ] Video overlay data
 
-## 📚 Technical Details
+## Technical Details
 
 ### Why FreeRTOS?
 
 **Arduino Loop (v1.0):**
 ```
-Read IMU → Read GPS → Write SD → Loop
-     ↑___________________________|
+Read IMU -> Read GPS -> Write SD -> Loop
+     ^___________________________|
 ```
 - Blocking SD writes delay sensors
 - Variable timing
@@ -381,41 +405,41 @@ Ring buffers between tasks provide:
 - **Resilience**: Brief slowdowns don't lose data
 - **Zero-copy**: Pointers passed, not data copied
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-rallyTelemetry-RTOS/
-├── rallyTelemetryRTOS.ino      # Main entry point
+rallyTelemetry/
+├── rallyTelemetry.ino           # Main entry point
 ├── data/
-│   └── dashboard/              # Web dashboard files
-│       ├── index.html          # Dashboard UI
-│       ├── main.js             # Chart.js visualization
-│       ├── settings.js         # Configuration
-│       └── styles.css          # Styling
+│   └── dashboard/               # Web dashboard files
+│       ├── index.html           # Dashboard UI
+│       ├── main.js              # Chart.js visualization
+│       ├── settings.js          # Configuration
+│       └── styles.css           # Styling
 ├── README.md                    # This file
 ├── UPGRADE_SUMMARY.md           # v1.0 vs v2.0 comparison
 └── src/
     ├── core/
-    │   ├── config.h            # RTOS config + data structures
-    │   ├── SystemState.h/cpp   # State machine
-    │   └── Tasks.h/cpp         # All task implementations
+    │   ├── config.h             # RTOS config + data structures
+    │   ├── SystemState.h/cpp    # State machine
+    │   └── Tasks.h/cpp          # All task implementations
     ├── sensors/
-    │   ├── imu.h/cpp           # 100Hz + calibration
-    │   └── gps.h/cpp           # 10Hz + VTG parsing
+    │   ├── imu.h/cpp            # 100Hz + calibration
+    │   └── gps.h/cpp            # 10Hz + VTG parsing
     ├── storage/
-    │   └── BinaryLogger.h/cpp  # Binary + rotation
+    │   └── BinaryLogger.h/cpp   # Binary + rotation
     ├── telemetry/
-    │   └── WiFiTelemetry.h/cpp # UDP + Web dashboard
+    │   └── WiFiTelemetry.h/cpp  # UDP + Web dashboard
     ├── alerts/
-    │   └── AlertManager.h/cpp  # Threshold alerts
+    │   └── AlertManager.h/cpp   # Threshold alerts
     └── utils/
-        └── RingBuffer.h        # Thread-safe buffers
+        └── RingBuffer.h         # Thread-safe buffers
 ```
 
-## 📝 License
+## License
 
 MIT License - See LICENSE file
 
 ---
 
-*Built with passion for rally and real-time systems.*
+Built for rally and real-time systems.
