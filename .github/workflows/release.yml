@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Cache PlatformIO
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.platformio
+          .pio
+        key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install PlatformIO
+      run: |
+        pip install platformio
+        pio upgrade
+    
+    - name: Build firmware
+      run: pio run
+    
+    - name: Copy firmware with version
+      run: |
+        VERSION=${GITHUB_REF_NAME#v}
+        cp .pio/build/esp32dev/firmware.bin "rallyTelemetry-${GITHUB_REF_NAME}.bin"
+        echo "FIRMWARE_NAME=rallyTelemetry-${GITHUB_REF_NAME}.bin" >> $GITHUB_ENV
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ${{ env.FIRMWARE_NAME }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
