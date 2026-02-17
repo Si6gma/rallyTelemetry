@@ -183,7 +183,7 @@ const uint16_t WEB_SERVER_PORT = 80;
 // DATA STRUCTURES
 // =============================================================================
 
-// Packed IMU data sample (16 bytes)
+// Packed IMU data sample (32 bytes)
 struct __attribute__((packed)) IMUData {
     uint32_t timestamp_ms;    // 4 bytes
     float accel_x;            // 4 bytes (m/s^2)
@@ -195,7 +195,7 @@ struct __attribute__((packed)) IMUData {
     float temperature;        // 4 bytes (Celsius)
 };
 
-// Packed GPS data sample (28 bytes)
+// Packed GPS data sample (36 bytes)
 struct __attribute__((packed)) GPSData {
     uint32_t timestamp_ms;    // 4 bytes
     double latitude;          // 8 bytes
@@ -209,14 +209,14 @@ struct __attribute__((packed)) GPSData {
     uint8_t padding;          // 1 byte (alignment)
 };
 
-// Combined telemetry packet (64 bytes) - for logging/streaming
+// Combined telemetry packet (82 bytes) - for logging/streaming
 struct __attribute__((packed)) TelemetryPacket {
     uint32_t magic;           // 4 bytes - 'RALLY' = 0x52414C4C
     uint16_t version;         // 2 bytes - protocol version
     uint16_t sequence;        // 2 bytes - packet sequence
     uint32_t timestamp_ms;    // 4 bytes
-    IMUData imu;              // 28 bytes (subset)
-    GPSData gps;              // 28 bytes (subset)
+    IMUData imu;              // 32 bytes
+    GPSData gps;              // 36 bytes
     uint16_t crc16;           // 2 bytes - checksum
 };
 
@@ -268,8 +268,8 @@ const uint16_t PACKET_VERSION = 2;
 // =============================================================================
 
 static_assert(sizeof(IMUData) == 32, "IMUData struct size mismatch");
-static_assert(sizeof(GPSData) == 32, "GPSData struct size mismatch");
-static_assert(sizeof(TelemetryPacket) == 72, "TelemetryPacket struct size mismatch");
+static_assert(sizeof(GPSData) == 36, "GPSData struct size mismatch");
+static_assert(sizeof(TelemetryPacket) == 82, "TelemetryPacket struct size mismatch");
 
 #if LOG_RATE_HZ > IMU_SAMPLE_RATE_HZ
     #error "LOG_RATE_HZ cannot exceed IMU_SAMPLE_RATE_HZ"

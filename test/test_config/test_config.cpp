@@ -13,8 +13,8 @@ void tearDown(void) {
 void test_data_structure_sizes(void) {
     // Verify packed structures have correct sizes
     TEST_ASSERT_EQUAL_MESSAGE(32, sizeof(IMUData), "IMUData size should be 32 bytes");
-    TEST_ASSERT_EQUAL_MESSAGE(32, sizeof(GPSData), "GPSData size should be 32 bytes");
-    TEST_ASSERT_EQUAL_MESSAGE(72, sizeof(TelemetryPacket), "TelemetryPacket size should be 72 bytes");
+    TEST_ASSERT_EQUAL_MESSAGE(36, sizeof(GPSData), "GPSData size should be 36 bytes");
+    TEST_ASSERT_EQUAL_MESSAGE(82, sizeof(TelemetryPacket), "TelemetryPacket size should be 82 bytes");
 }
 
 void test_packet_magic_constant(void) {

@@ -14,7 +14,7 @@
 
 #include "../core/config.h"
 #include <WiFi.h>
-#include <WiFiUDP.h>
+#include <WiFiUdp.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <SPIFFS.h>
