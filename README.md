@@ -16,6 +16,8 @@ High-performance telemetry data logger for rally cars. Real-time sensor fusion, 
 - **Automatic log rotation** - 50MB chunks, circular buffer
 - **Dual-core RTOS** - Sensors on Core 0, I/O on Core 1
 
+![Dashboard](docs/images/dashboard.png)
+
 ## Hardware
 
 | Component | Part | Interface |
