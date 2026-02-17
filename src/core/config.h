@@ -57,27 +57,27 @@ const uint32_t LOG_RATE_HZ = 50;              // 50Hz combined logging
 const uint32_t TELEMETRY_RATE_HZ = 20;        // 20Hz WiFi streaming
 
 // Calculate intervals in milliseconds
-const TickType_t IMU_INTERVAL_MS = pdMS_TO_TICKS(1000 / IMU_SAMPLE_RATE_HZ);
-const TickType_t GPS_INTERVAL_MS = pdMS_TO_TICKS(1000 / GPS_SAMPLE_RATE_HZ);
-const TickType_t LOG_INTERVAL_MS = pdMS_TO_TICKS(1000 / LOG_RATE_HZ);
-const TickType_t TELEMETRY_INTERVAL_MS = pdMS_TO_TICKS(1000 / TELEMETRY_RATE_HZ);
+constexpr TickType_t IMU_INTERVAL_MS = pdMS_TO_TICKS(1000 / IMU_SAMPLE_RATE_HZ);
+constexpr TickType_t GPS_INTERVAL_MS = pdMS_TO_TICKS(1000 / GPS_SAMPLE_RATE_HZ);
+constexpr TickType_t LOG_INTERVAL_MS = pdMS_TO_TICKS(1000 / LOG_RATE_HZ);
+constexpr TickType_t TELEMETRY_INTERVAL_MS = pdMS_TO_TICKS(1000 / TELEMETRY_RATE_HZ);
 
 // =============================================================================
 // BUFFER CONFIGURATION
 // =============================================================================
 
 // Ring buffer sizes (must be power of 2 for efficient masking)
-const size_t IMU_BUFFER_SIZE = 256;           // ~2.5 seconds at 100Hz
-const size_t GPS_BUFFER_SIZE = 32;            // ~3 seconds at 10Hz
-const size_t LOG_BUFFER_SIZE = 128;           // ~2.5 seconds at 50Hz
-const size_t ALERT_QUEUE_SIZE = 16;           // Alert queue depth
-const size_t TELEMETRY_BUFFER_SIZE = 64;      // Network queue
+constexpr size_t IMU_BUFFER_SIZE = 256;       // ~2.5 seconds at 100Hz
+constexpr size_t GPS_BUFFER_SIZE = 32;        // ~3 seconds at 10Hz
+constexpr size_t LOG_BUFFER_SIZE = 128;       // ~2.5 seconds at 50Hz
+constexpr size_t ALERT_QUEUE_SIZE = 16;       // Alert queue depth
+constexpr size_t TELEMETRY_BUFFER_SIZE = 64;  // Network queue
 
 // =============================================================================
 // SERIAL CONFIGURATION
 // =============================================================================
 
-const long SERIAL_BAUD = 115200;
+constexpr long SERIAL_BAUD = 115200;
 
 // Debug levels: 0=NONE, 1=ERROR, 2=WARN, 3=INFO, 4=DEBUG, 5=VERBOSE
 #define DEBUG_LEVEL 4
@@ -91,40 +91,40 @@ const long SERIAL_BAUD = 115200;
 // =============================================================================
 
 // Status LEDs (RGB for detailed status)
-const int LED_PIN_RED   = 25;
-const int LED_PIN_GREEN = 26;
-const int LED_PIN_BLUE  = 27;
+constexpr int LED_PIN_RED   = 25;
+constexpr int LED_PIN_GREEN = 26;
+constexpr int LED_PIN_BLUE  = 27;
 
 // GPS Module (UART2)
-const int GPS_RX_PIN = 16;
-const int GPS_TX_PIN = 17;
+constexpr int GPS_RX_PIN = 16;
+constexpr int GPS_TX_PIN = 17;
 
 // SD Card (SPI)
-const int SD_MOSI_PIN = 23;
-const int SD_MISO_PIN = 19;
-const int SD_SCK_PIN  = 18;
-const int SD_CS_PIN   = 5;
+constexpr int SD_MOSI_PIN = 23;
+constexpr int SD_MISO_PIN = 19;
+constexpr int SD_SCK_PIN  = 18;
+constexpr int SD_CS_PIN   = 5;
 
 // I2C (MPU6050)
-const int I2C_SDA_PIN = 21;
-const int I2C_SCL_PIN = 22;
+constexpr int I2C_SDA_PIN = 21;
+constexpr int I2C_SCL_PIN = 22;
 
 // CAN Bus (optional - for OBD-II integration)
-const int CAN_RX_PIN = 4;
-const int CAN_TX_PIN = 15;
+constexpr int CAN_RX_PIN = 4;
+constexpr int CAN_TX_PIN = 15;
 
 // =============================================================================
 // SENSOR CONFIGURATION
 // =============================================================================
 
 // GPS
-const int GPS_BAUD_RATE = 9600;
-const int GPS_BUFFER_SIZE_BYTES = 256;
+constexpr int GPS_BAUD_RATE = 9600;
+constexpr int GPS_BUFFER_SIZE_BYTES = 256;
 
 // IMU (MPU6050)
-const uint8_t MPU6050_ADDR = 0x68;
-const float ACCEL_SCALE = 16384.0f;
-const float GYRO_SCALE = 131.0f;
+constexpr uint8_t MPU6050_ADDR = 0x68;
+constexpr float ACCEL_SCALE = 16384.0f;
+constexpr float GYRO_SCALE = 131.0f;
 
 // =============================================================================
 // STORAGE CONFIGURATION
@@ -134,50 +134,50 @@ const float GYRO_SCALE = 131.0f;
 #define USE_BINARY_FORMAT true
 
 // Log rotation
-const uint32_t MAX_LOG_SIZE_BYTES = 50 * 1024 * 1024;  // 50MB per file
-const uint32_t MAX_LOG_FILES = 10;
-const char* LOG_FILE_BASE = "/rally";
-const char* LOG_EXT = ".bin";
+constexpr uint32_t MAX_LOG_SIZE_BYTES = 50 * 1024 * 1024;  // 50MB per file
+constexpr uint32_t MAX_LOG_FILES = 10;
+constexpr char LOG_FILE_BASE[] = "/rally";
+constexpr char LOG_EXT[] = ".bin";
 
 // SD flush settings
-const int FLUSH_INTERVAL_WRITES = 100;
-const uint32_t FLUSH_INTERVAL_MS = 5000;
+constexpr int FLUSH_INTERVAL_WRITES = 100;
+constexpr uint32_t FLUSH_INTERVAL_MS = 5000;
 
 // =============================================================================
 // ALERT THRESHOLDS
 // =============================================================================
 
 // G-force limits (for rally racing context)
-const float ALERT_G_FORCE_WARN  = 2.5f;   // Warning at 2.5G
-const float ALERT_G_FORCE_CRIT  = 3.5f;   // Critical at 3.5G
-const float ALERT_G_FORCE_MAX   = 5.0f;   // Max recorded in WRC is ~4.5G
+constexpr float ALERT_G_FORCE_WARN  = 2.5f;   // Warning at 2.5G
+constexpr float ALERT_G_FORCE_CRIT  = 3.5f;   // Critical at 3.5G
+constexpr float ALERT_G_FORCE_MAX   = 5.0f;   // Max recorded in WRC is ~4.5G
 
 // Temperature limits
-const float ALERT_TEMP_WARN  = 60.0f;   // IMU warning (deg C)
-const float ALERT_TEMP_CRIT  = 75.0f;   // IMU critical
+constexpr float ALERT_TEMP_WARN  = 60.0f;   // IMU warning (deg C)
+constexpr float ALERT_TEMP_CRIT  = 75.0f;   // IMU critical
 
 // Roll/pitch limits (degrees)
-const float ALERT_ROLL_WARN  = 25.0f;
-const float ALERT_ROLL_CRIT  = 35.0f;
-const float ALERT_PITCH_WARN = 20.0f;
-const float ALERT_PITCH_CRIT = 30.0f;
+constexpr float ALERT_ROLL_WARN  = 25.0f;
+constexpr float ALERT_ROLL_CRIT  = 35.0f;
+constexpr float ALERT_PITCH_WARN = 20.0f;
+constexpr float ALERT_PITCH_CRIT = 30.0f;
 
 // =============================================================================
 // TELEMETRY CONFIGURATION
 // =============================================================================
 
 // WiFi AP Mode settings
-const char* WIFI_AP_SSID = "RallyTelemetry";
-const char* WIFI_AP_PASS = "rally2024";
+constexpr char WIFI_AP_SSID[] = "RallyTelemetry";
+constexpr char WIFI_AP_PASS[] = "rally2024";
 const IPAddress WIFI_AP_IP(192, 168, 4, 1);
 const IPAddress WIFI_AP_NETMASK(255, 255, 255, 0);
 
 // UDP Streaming
-const uint16_t TELEMETRY_UDP_PORT = 5005;
-const char* TELEMETRY_UDP_HOST = "192.168.4.255";  // Broadcast
+constexpr uint16_t TELEMETRY_UDP_PORT = 5005;
+constexpr char TELEMETRY_UDP_HOST[] = "192.168.4.255";  // Broadcast
 
 // Web server
-const uint16_t WEB_SERVER_PORT = 80;
+constexpr uint16_t WEB_SERVER_PORT = 80;
 
 // =============================================================================
 // DATA STRUCTURES
@@ -258,10 +258,10 @@ enum class SystemState : uint8_t {
 // CONSTANTS
 // =============================================================================
 
-const float GRAVITY_MS2 = 9.80665f;
-const float PI_F = 3.14159265359f;
-const uint32_t PACKET_MAGIC = 0x52414C4C;  // "RALL"
-const uint16_t PACKET_VERSION = 2;
+constexpr float GRAVITY_MS2 = 9.80665f;
+constexpr float PI_F = 3.14159265359f;
+constexpr uint32_t PACKET_MAGIC = 0x52414C4C;  // "RALL"
+constexpr uint16_t PACKET_VERSION = 2;
 
 // =============================================================================
 // COMPILE-TIME VALIDATION

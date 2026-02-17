@@ -23,15 +23,15 @@
  * @author Rally Telemetry Team
  */
 
-#include "src/core/config.h"
-#include "src/core/SystemState.h"
-#include "src/core/Tasks.h"
-#include "src/sensors/imu.h"
-#include "src/sensors/gps.h"
-#include "src/alerts/AlertManager.h"
-#include "src/storage/BinaryLogger.h"
-#include "src/telemetry/WiFiTelemetry.h"
-#include "src/utils/RingBuffer.h"
+#include "core/config.h"
+#include "core/SystemState.h"
+#include "core/Tasks.h"
+#include "sensors/imu.h"
+#include "sensors/gps.h"
+#include "alerts/AlertManager.h"
+#include "storage/BinaryLogger.h"
+#include "telemetry/WiFiTelemetry.h"
+#include "utils/RingBuffer.h"
 
 // =============================================================================
 // GLOBAL OBJECTS
