@@ -1,12 +1,13 @@
 /**
- * WiFi Telemetry Streaming Module
+ * WiFi Telemetry Streaming Module with Web Dashboard
  * 
  * Features:
  * - UDP broadcast/multicast streaming
- * - WebSocket server for real-time dashboard
+ * - Web dashboard for real-time visualization
+ * - Serve static files from SPIFFS
+ * - Binary to CSV conversion API
  * - TCP server for reliable data transfer
  * - mDNS service discovery
- * - Configurable via BLE or web interface
  */
 
 #pragma once
@@ -16,6 +17,7 @@
 #include <WiFiUDP.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+#include <SPIFFS.h>
 
 // Connection modes
 enum class WiFiMode : uint8_t {
@@ -72,12 +74,29 @@ private:
     uint32_t lastPacketTime = 0;
     uint32_t minIntervalMs = 50;  // Max 20Hz
     
+    // Current telemetry data for web API
+    TelemetryPacket lastPacket;
+    SemaphoreHandle_t packetMutex = nullptr;
+    
     // Web server handlers
     void setupWebServer();
     void handleRoot();
+    void handleDashboard();
+    void handleStaticFile();
     void handleStatus();
+    void handleLiveData();
     void handleConfig();
+    void handleListFiles();
     void handleDownload();
+    void handleConvertBinary();
+    void handleNotFound();
+    
+    // File serving
+    String getContentType(const String& filename);
+    bool serveFile(const String& path);
+    
+    // Binary to CSV conversion
+    bool convertBinaryToCSV(const char* binPath, String& csvOutput);
     
 public:
     WiFiTelemetry();
@@ -96,6 +115,9 @@ public:
     
     // Alternative: Raw binary stream
     bool streamRaw(const uint8_t* data, size_t len);
+    
+    // Update current packet for web API
+    void updateLiveData(const TelemetryPacket& packet);
     
     // TCP server management
     void updateTCPClients();

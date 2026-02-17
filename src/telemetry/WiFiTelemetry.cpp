@@ -1,7 +1,9 @@
 #include "WiFiTelemetry.h"
+#include <SD.h>
 
 WiFiTelemetry::WiFiTelemetry() {
     statsMutex = xSemaphoreCreateMutex();
+    packetMutex = xSemaphoreCreateMutex();
     
     // Default config
     strncpy(apSSID, WIFI_AP_SSID, 32);
@@ -15,15 +17,30 @@ WiFiTelemetry::WiFiTelemetry() {
     udpAddress.fromString(TELEMETRY_UDP_HOST);
     udpPort = TELEMETRY_UDP_PORT;
     udpBroadcast = true;
+    
+    memset(&lastPacket, 0, sizeof(lastPacket));
 }
 
 WiFiTelemetry::~WiFiTelemetry() {
     end();
     if (statsMutex) vSemaphoreDelete(statsMutex);
+    if (packetMutex) vSemaphoreDelete(packetMutex);
 }
 
 bool WiFiTelemetry::begin(WiFiMode wifiMode) {
     mode = wifiMode;
+    
+    // Initialize SPIFFS for serving dashboard files
+    if (!SPIFFS.begin(true)) {
+        DEBUG_PRINTLN(2, "SPIFFS initialization failed - dashboard may not work");
+        // Continue anyway - UDP still works
+    } else {
+        DEBUG_PRINTLN(3, "SPIFFS initialized");
+        // Check for dashboard files
+        if (SPIFFS.exists("/dashboard/index.html")) {
+            DEBUG_PRINTLN(3, "Dashboard files found in SPIFFS");
+        }
+    }
     
     // Disconnect any existing connection
     WiFi.disconnect(true);
@@ -48,7 +65,6 @@ bool WiFiTelemetry::begin(WiFiMode wifiMode) {
             WiFi.begin(staSSID, staPassword);
             DEBUG_PRINTF(3, "Connecting to WiFi: %s\n", staSSID);
             
-            // Wait for connection (blocking for startup)
             int attempts = 0;
             while (WiFi.status() != WL_CONNECTED && attempts < 20) {
                 delay(500);
@@ -92,6 +108,7 @@ bool WiFiTelemetry::begin(WiFiMode wifiMode) {
     setupWebServer();
     webServer->begin();
     DEBUG_PRINTF(3, "Web server started on port %d\n", WEB_SERVER_PORT);
+    DEBUG_PRINTLN(3, "Dashboard: http://rally-telemetry.local or http://192.168.4.1");
     
     return true;
 }
@@ -111,7 +128,407 @@ void WiFiTelemetry::end() {
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     
+    SPIFFS.end();
+    
     mode = WiFiMode::OFF;
+}
+
+void WiFiTelemetry::setupWebServer() {
+    // Dashboard routes
+    webServer->on("/", HTTP_GET, [this]() { handleRoot(); });
+    webServer->on("/dashboard", HTTP_GET, [this]() { handleDashboard(); });
+    webServer->on("/dashboard/", HTTP_GET, [this]() { handleDashboard(); });
+    
+    // API routes
+    webServer->on("/status", HTTP_GET, [this]() { handleStatus(); });
+    webServer->on("/api/live", HTTP_GET, [this]() { handleLiveData(); });
+    webServer->on("/api/files", HTTP_GET, [this]() { handleListFiles(); });
+    webServer->on("/api/convert", HTTP_GET, [this]() { handleConvertBinary(); });
+    webServer->on("/config", HTTP_POST, [this]() { handleConfig(); });
+    webServer->on("/download", HTTP_GET, [this]() { handleDownload(); });
+    
+    // Static files (CSS, JS)
+    webServer->onNotFound([this]() { handleStaticFile(); });
+}
+
+void WiFiTelemetry::handleRoot() {
+    // Redirect to dashboard
+    webServer->sendHeader("Location", "/dashboard");
+    webServer->send(302, "text/plain", "Redirecting to dashboard...");
+}
+
+void WiFiTelemetry::handleDashboard() {
+    // Serve the dashboard index.html
+    if (!serveFile("/dashboard/index.html")) {
+        // Fallback if SPIFFS not available
+        String html = R"(
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rally Telemetry Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #1a1a1a; color: #fff; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #ff6b35; }
+        .card { background: #2a2a2a; padding: 20px; margin: 15px 0; border-radius: 12px; }
+        .metric { display: inline-block; margin: 15px 25px 15px 0; }
+        .label { color: #888; font-size: 13px; text-transform: uppercase; }
+        .value { font-size: 32px; font-weight: 700; color: #4CAF50; }
+        .value.warning { color: #ff9800; }
+        .value.critical { color: #f44336; }
+        a { color: #4CAF50; }
+        .btn { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; margin: 5px; }
+        .btn:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rally Telemetry Pro</h1>
+        <p>Real-time rally car telemetry system</p>
+        
+        <div class="card">
+            <h2>System Status</h2>
+            <div class="metric">
+                <div class="label">WiFi Mode</div>
+                <div class="value" id="wifiMode">)" + getModeString() + R"(</div>
+            </div>
+            <div class="metric">
+                <div class="label">IP Address</div>
+                <div class="value">)" + getLocalIP().toString() + R"(</div>
+            </div>
+            <div class="metric">
+                <div class="label">Signal</div>
+                <div class="value">)" + signalStrengthToString(getSignalStrength()) + R"(</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Live Data</h2>
+            <div class="metric">
+                <div class="label">G-Force</div>
+                <div class="value" id="gforce">--</div>
+            </div>
+            <div class="metric">
+                <div class="label">Speed</div>
+                <div class="value" id="speed">-- km/h</div>
+            </div>
+            <div class="metric">
+                <div class="label">Sats</div>
+                <div class="value" id="sats">--</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Actions</h2>
+            <a href="/api/files" class="btn">Download Logs</a>
+            <a href="/api/live" class="btn">Live API</a>
+            <a href="/status" class="btn">System Status (JSON)</a>
+        </div>
+        
+        <p><small>v)" + String(FIRMWARE_VERSION) + R"( | <a href="https://github.com/Si6gma/rallyTelemetry">GitHub</a></small></p>
+    </div>
+    <script>
+        async function updateLiveData() {
+            try {
+                const resp = await fetch('/api/live');
+                const data = await resp.json();
+                const g = Math.sqrt(data.imu.ax**2 + data.imu.ay**2 + data.imu.az**2) / 9.81;
+                document.getElementById('gforce').textContent = g.toFixed(2) + 'G';
+                document.getElementById('speed').textContent = data.gps.speed.toFixed(1) + ' km/h';
+                document.getElementById('sats').textContent = data.gps.sats;
+            } catch(e) {}
+        }
+        setInterval(updateLiveData, 500);
+        updateLiveData();
+    </script>
+</body>
+</html>
+)";
+        webServer->send(200, "text/html", html);
+    }
+}
+
+void WiFiTelemetry::handleStaticFile() {
+    String path = webServer->uri();
+    if (path.endsWith("/")) path += "index.html";
+    
+    // Map /dashboard/* to SPIFFS /dashboard/*
+    if (path.startsWith("/dashboard/")) {
+        String spiffsPath = path;
+        if (serveFile(spiffsPath)) return;
+    }
+    
+    handleNotFound();
+}
+
+bool WiFiTelemetry::serveFile(const String& path) {
+    if (!SPIFFS.exists(path)) {
+        return false;
+    }
+    
+    File file = SPIFFS.open(path, "r");
+    if (!file) {
+        return false;
+    }
+    
+    String contentType = getContentType(path);
+    
+    // Handle gzip compression
+    if (SPIFFS.exists(path + ".gz")) {
+        file.close();
+        file = SPIFFS.open(path + ".gz", "r");
+        webServer->sendHeader("Content-Encoding", "gzip");
+    }
+    
+    webServer->streamFile(file, contentType);
+    file.close();
+    return true;
+}
+
+String WiFiTelemetry::getContentType(const String& filename) {
+    if (filename.endsWith(".html")) return "text/html";
+    if (filename.endsWith(".css")) return "text/css";
+    if (filename.endsWith(".js")) return "application/javascript";
+    if (filename.endsWith(".json")) return "application/json";
+    if (filename.endsWith(".png")) return "image/png";
+    if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) return "image/jpeg";
+    if (filename.endsWith(".gif")) return "image/gif";
+    if (filename.endsWith(".svg")) return "image/svg+xml";
+    if (filename.endsWith(".ico")) return "image/x-icon";
+    if (filename.endsWith(".gz")) return "application/gzip";
+    return "text/plain";
+}
+
+void WiFiTelemetry::handleStatus() {
+    String json = "{";
+    json += "\"mode\":\"" + getModeString() + "\",";
+    json += "\"ip\":\"" + getLocalIP().toString() + "\",";
+    json += "\"rssi\":" + String(getSignalStrength()) + ",";
+    json += "\"connected\":" + String(isConnected() ? "true" : "false") + ",";
+    json += "\"version\":\"" + String(FIRMWARE_VERSION) + "\",";
+    json += "\"heap\":" + String(ESP.getFreeHeap());
+    json += "}";
+    webServer->send(200, "application/json", json);
+}
+
+void WiFiTelemetry::handleLiveData() {
+    xSemaphoreTake(packetMutex, portMAX_DELAY);
+    
+    // Convert last packet to JSON
+    String json = "{";
+    json += "\"timestamp\":" + String(lastPacket.timestamp_ms) + ",";
+    json += "\"sequence\":" + String(lastPacket.sequence) + ",";
+    json += "\"imu\":{";
+    json += "\"ax\":" + String(lastPacket.imu.accel_x, 3) + ",";
+    json += "\"ay\":" + String(lastPacket.imu.accel_y, 3) + ",";
+    json += "\"az\":" + String(lastPacket.imu.accel_z, 3) + ",";
+    json += "\"gx\":" + String(lastPacket.imu.gyro_x, 3) + ",";
+    json += "\"gy\":" + String(lastPacket.imu.gyro_y, 3) + ",";
+    json += "\"gz\":" + String(lastPacket.imu.gyro_z, 3) + ",";
+    json += "\"temp\":" + String(lastPacket.imu.temperature, 1);
+    json += "},\"gps\":{";
+    json += "\"lat\":" + String(lastPacket.gps.latitude, 6) + ",";
+    json += "\"lon\":" + String(lastPacket.gps.longitude, 6) + ",";
+    json += "\"alt\":" + String(lastPacket.gps.altitude, 1) + ",";
+    json += "\"speed\":" + String(lastPacket.gps.speed_kmh, 1) + ",";
+    json += "\"heading\":" + String(lastPacket.gps.heading, 1) + ",";
+    json += "\"sats\":" + String(lastPacket.gps.satellites) + ",";
+    json += "\"fix\":" + String(lastPacket.gps.fix_quality);
+    json += "}}";
+    
+    xSemaphoreGive(packetMutex);
+    
+    webServer->send(200, "application/json", json);
+}
+
+void WiFiTelemetry::handleListFiles() {
+    String html = R"(
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rally Telemetry - Files</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #1a1a1a; color: #fff; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #ff6b35; }
+        .file { background: #2a2a2a; padding: 15px; margin: 10px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .file-info { flex: 1; }
+        .file-name { font-weight: 600; color: #4CAF50; }
+        .file-size { color: #888; font-size: 13px; }
+        .btn { background: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; margin-left: 10px; }
+        .btn.secondary { background: #666; }
+        .btn:hover { opacity: 0.9; }
+        a { color: #4CAF50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📁 Log Files</h1>
+        <p><a href="/">← Back to Dashboard</a></p>
+)";
+
+    // List binary files
+    for (uint8_t i = 0; i < MAX_LOG_FILES; i++) {
+        char filename[32];
+        snprintf(filename, sizeof(filename), "%s_%03d%s", LOG_FILE_BASE, i, LOG_EXT);
+        if (SD.exists(filename)) {
+            File f = SD.open(filename);
+            size_t size = f.size();
+            f.close();
+            
+            String sizeStr;
+            if (size < 1024) sizeStr = String(size) + " B";
+            else if (size < 1024*1024) sizeStr = String(size/1024) + " KB";
+            else sizeStr = String(size/(1024*1024)) + " MB";
+            
+            html += "<div class='file'>";
+            html += "<div class='file-info'>";
+            html += "<div class='file-name'>" + String(filename) + "</div>";
+            html += "<div class='file-size'>" + sizeStr + "</div>";
+            html += "</div>";
+            html += "<div>";
+            html += "<a href='/download?file=" + String(filename) + "' class='btn'>Download BIN</a>";
+            html += "<a href='/api/convert?file=" + String(filename) + "' class='btn secondary'>Download CSV</a>";
+            html += "</div>";
+            html += "</div>";
+        }
+    }
+
+    html += R"(
+        <p style="margin-top: 30px; color: #888;">
+            <small>Binary files are compact and fast. CSV files are human-readable and compatible with Excel/sheets.</small>
+        </p>
+    </div>
+</body>
+</html>
+)";
+    
+    webServer->send(200, "text/html", html);
+}
+
+void WiFiTelemetry::handleConvertBinary() {
+    if (!webServer->hasArg("file")) {
+        webServer->send(400, "text/plain", "Missing file parameter");
+        return;
+    }
+    
+    String filename = webServer->arg("file");
+    if (!filename.startsWith("/")) filename = "/" + filename;
+    
+    if (!SD.exists(filename)) {
+        webServer->send(404, "text/plain", "File not found");
+        return;
+    }
+    
+    // Convert to CSV
+    String csvData;
+    if (!convertBinaryToCSV(filename.c_str(), csvData)) {
+        webServer->send(500, "text/plain", "Conversion failed");
+        return;
+    }
+    
+    String csvFilename = filename.substring(0, filename.lastIndexOf('.')) + ".csv";
+    
+    webServer->sendHeader("Content-Disposition", "attachment; filename=\"" + csvFilename.substring(1) + "\"");
+    webServer->send(200, "text/csv", csvData);
+}
+
+bool WiFiTelemetry::convertBinaryToCSV(const char* binPath, String& csvOutput) {
+    File binFile = SD.open(binPath, FILE_READ);
+    if (!binFile) return false;
+    
+    // Read header
+    struct __attribute__((packed)) LogFileHeader {
+        uint32_t magic;
+        uint16_t version;
+        uint32_t createdTime;
+        uint16_t packetSize;
+        uint16_t reserved;
+        char vehicleId[16];
+        char driverName[16];
+        uint32_t crc32;
+    } header;
+    
+    if (binFile.read((uint8_t*)&header, sizeof(header)) != sizeof(header)) {
+        binFile.close();
+        return false;
+    }
+    
+    // CSV header
+    csvOutput = "Timestamp,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ,TempC,";
+    csvOutput += "Latitude,Longitude,Altitude,SpeedKmh,Heading,Satellites,FixQuality\n";
+    
+    // Read packets
+    TelemetryPacket packet;
+    while (binFile.read((uint8_t*)&packet, sizeof(packet)) == sizeof(packet)) {
+        if (packet.magic != PACKET_MAGIC) continue;
+        
+        csvOutput += String(packet.timestamp_ms) + ",";
+        csvOutput += String(packet.imu.accel_x, 3) + ",";
+        csvOutput += String(packet.imu.accel_y, 3) + ",";
+        csvOutput += String(packet.imu.accel_z, 3) + ",";
+        csvOutput += String(packet.imu.gyro_x, 3) + ",";
+        csvOutput += String(packet.imu.gyro_y, 3) + ",";
+        csvOutput += String(packet.imu.gyro_z, 3) + ",";
+        csvOutput += String(packet.imu.temperature, 1) + ",";
+        csvOutput += String(packet.gps.latitude, 6) + ",";
+        csvOutput += String(packet.gps.longitude, 6) + ",";
+        csvOutput += String(packet.gps.altitude, 1) + ",";
+        csvOutput += String(packet.gps.speed_kmh, 1) + ",";
+        csvOutput += String(packet.gps.heading, 1) + ",";
+        csvOutput += String(packet.gps.satellites) + ",";
+        csvOutput += String(packet.gps.fix_quality) + "\n";
+    }
+    
+    binFile.close();
+    return true;
+}
+
+void WiFiTelemetry::handleDownload() {
+    if (!webServer->hasArg("file")) {
+        handleListFiles();
+        return;
+    }
+    
+    String filename = webServer->arg("file");
+    if (!filename.startsWith("/")) filename = "/" + filename;
+    
+    if (!SD.exists(filename)) {
+        webServer->send(404, "text/plain", "File not found");
+        return;
+    }
+    
+    File file = SD.open(filename, FILE_READ);
+    if (!file) {
+        webServer->send(500, "text/plain", "Cannot open file");
+        return;
+    }
+    
+    webServer->sendHeader("Content-Disposition", "attachment; filename=\"" + filename.substring(1) + "\"");
+    webServer->streamFile(file, "application/octet-stream");
+    file.close();
+}
+
+void WiFiTelemetry::handleConfig() {
+    // Handle configuration updates via POST
+    if (webServer->hasArg("ssid")) {
+        setAPConfig(webServer->arg("ssid").c_str(), 
+                    webServer->arg("password").c_str());
+    }
+    
+    webServer->send(200, "application/json", "{\"success\":true}");
+}
+
+void WiFiTelemetry::handleNotFound() {
+    webServer->send(404, "text/plain", "Not Found");
+}
+
+void WiFiTelemetry::updateLiveData(const TelemetryPacket& packet) {
+    xSemaphoreTake(packetMutex, portMAX_DELAY);
+    memcpy(&lastPacket, &packet, sizeof(packet));
+    xSemaphoreGive(packetMutex);
 }
 
 void WiFiTelemetry::setAPConfig(const char* ssid, const char* password) {
@@ -135,6 +552,9 @@ void WiFiTelemetry::setUDPEndpoint(const char* ip, uint16_t port, bool broadcast
 }
 
 bool WiFiTelemetry::stream(const TelemetryPacket& packet) {
+    // Update web API data
+    updateLiveData(packet);
+    
     return streamRaw((const uint8_t*)&packet, sizeof(packet));
 }
 
@@ -144,7 +564,7 @@ bool WiFiTelemetry::streamRaw(const uint8_t* data, size_t len) {
     // Rate limiting
     uint32_t now = millis();
     if (now - lastPacketTime < minIntervalMs) {
-        return true;  // Skip but don't error
+        return true;
     }
     lastPacketTime = now;
     
@@ -166,7 +586,7 @@ bool WiFiTelemetry::streamRaw(const uint8_t* data, size_t len) {
         stats.errors++;
     }
     
-    // Also send to TCP clients
+    // TCP clients
     updateTCPClients();
     for (int i = 0; i < MAX_TCP_CLIENTS; i++) {
         if (tcpClients[i].connected()) {
@@ -178,11 +598,10 @@ bool WiFiTelemetry::streamRaw(const uint8_t* data, size_t len) {
 }
 
 void WiFiTelemetry::updateTCPClients() {
-    // Clean up disconnected clients
     for (int i = 0; i < MAX_TCP_CLIENTS; i++) {
         if (tcpClients[i] && !tcpClients[i].connected()) {
             tcpClients[i].stop();
-            DEBUG_PRINTF(3, "TCP client %d disconnected\n", i);
+            DEBUG_PRINTF(4, "TCP client %d disconnected\n", i);
         }
     }
 }
@@ -205,7 +624,7 @@ int WiFiTelemetry::getConnectedClientCount() const {
 
 bool WiFiTelemetry::isConnected() const {
     if (mode == WiFiMode::OFF) return false;
-    if (mode == WiFiMode::AP_MODE) return true;  // AP is always "connected"
+    if (mode == WiFiMode::AP_MODE) return true;
     return WiFi.status() == WL_CONNECTED;
 }
 
@@ -245,87 +664,6 @@ void WiFiTelemetry::handleWebClient() {
         webServer->handleClient();
     }
     MDNS.update();
-}
-
-void WiFiTelemetry::setupWebServer() {
-    webServer->on("/", HTTP_GET, [this]() { handleRoot(); });
-    webServer->on("/status", HTTP_GET, [this]() { handleStatus(); });
-    webServer->on("/config", HTTP_POST, [this]() { handleConfig(); });
-    webServer->on("/download", HTTP_GET, [this]() { handleDownload(); });
-}
-
-void WiFiTelemetry::handleRoot() {
-    String html = R"(
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Rally Telemetry</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
-        h1 { color: #ff6b35; }
-        .card { background: #2a2a2a; padding: 15px; margin: 10px 0; border-radius: 8px; }
-        .metric { display: inline-block; margin: 10px 20px 10px 0; }
-        .label { color: #888; font-size: 12px; }
-        .value { font-size: 24px; font-weight: bold; color: #4CAF50; }
-        .alert { color: #f44336; }
-    </style>
-</head>
-<body>
-    <h1>Rally Telemetry Pro</h1>
-    <div class="card">
-        <h2>System Status</h2>
-        <div class="metric">
-            <div class="label">WiFi Mode</div>
-            <div class="value">)" + getModeString() + R"(</div>
-        </div>
-        <div class="metric">
-            <div class="label">IP Address</div>
-            <div class="value">)" + getLocalIP().toString() + R"(</div>
-        </div>
-        <div class="metric">
-            <div class="label">Signal</div>
-            <div class="value">)" + signalStrengthToString(getSignalStrength()) + R"(</div>
-        </div>
-    </div>
-    <div class="card">
-        <h2>Actions</h2>
-        <a href="/download" style="color:#4CAF50">Download Logs</a> | 
-        <a href="/status" style="color:#4CAF50">View Status (JSON)</a>
-    </div>
-</body>
-</html>
-)";
-    webServer->send(200, "text/html", html);
-}
-
-void WiFiTelemetry::handleStatus() {
-    String json = "{";
-    json += "\"mode\":\"" + getModeString() + "\",";
-    json += "\"ip\":\"" + getLocalIP().toString() + "\",";
-    json += "\"rssi\":" + String(getSignalStrength()) + ",";
-    json += "\"connected\":" + String(isConnected() ? "true" : "false");
-    json += "}";
-    webServer->send(200, "application/json", json);
-}
-
-void WiFiTelemetry::handleConfig() {
-    // Handle configuration updates
-    webServer->send(200, "text/plain", "Configuration updated");
-}
-
-void WiFiTelemetry::handleDownload() {
-    // List available log files
-    String html = "<h1>Log Files</h1><ul>";
-    for (uint8_t i = 0; i < MAX_LOG_FILES; i++) {
-        char filename[32];
-        snprintf(filename, sizeof(filename), "%s_%03d%s", LOG_FILE_BASE, i, LOG_EXT);
-        if (SD.exists(filename)) {
-            html += "<li><a href=\"/download/" + String(filename) + "\">" + String(filename) + "</a></li>";
-        }
-    }
-    html += "</ul>";
-    webServer->send(200, "text/html", html);
 }
 
 String WiFiTelemetry::signalStrengthToString(int rssi) {

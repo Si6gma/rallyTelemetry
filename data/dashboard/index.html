@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+   
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>HARTUI</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="icon" href="./Images/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <Header>
+        
+        <h1>Welcome to HartUI</h1>
+    </header>
+    <main>
+        <div id = "leftbox">
+            <div id = "choosecsv">
+                <input type="file" id="csvFile" accept=".csv">
+            </div>
+            <div id = "display_options">
+              <label for="displayoptions">display options:</label>
+
+              <select name="displayoptions" id="DisplayOptions">
+                <option value="not stacked">not stacked</option>
+                <option value="semi stacked">semi stacked</option>
+                <option value="fully stacked">fully stacked</option>
+              </select> 
+              <span id = lightdarkemoji> </span>
+            </div>
+            <div id = "parameters">
+              
+            </div>
+            <div id = "createParameterButtonBox">
+            </div>
+        </div>
+        <div id = "rightbox">
+            <div id = "timeGraph">
+              <canvas id="simpleChart" aria-label="Hello ARIA World" role="img"></canvas>
+            </div>
+        </div>
+        <div id = 'calcModal' class = 'modal'>
+          <div id = 'calcUI' class = 'modal-content'>
+            <div id = 'calcUItopBox'>
+              <label for="newParameterName"> Name new variable: </label>
+              <input type="text" id="newParameterName">  
+            </div>
+            <div id = 'calcUImiddleBox'>
+              <div id = 'calcUIleftBox'>
+                
+              </div>
+              <div id = calcUIrightBox>
+                <button class = 'mathOperator'> + </button>
+                <button class = 'mathOperator'> - </button>
+                <button class = 'mathOperator'> * </button>
+                <button class = 'mathOperator'> / </button>
+                <button class = 'mathOperator'> sqrt( </button>
+                <button class = 'mathOperator'> ^ </button>
+                <button class = 'mathOperator'> ( </button>
+                <button class = 'mathOperator'> ) </button>
+              </div>
+            </div>
+            <div id = 'calcUIbottomBox'>
+              <input type="text" id= "newParameterEquation">  
+              <button id= "submitNewParameter" > Add parameter </button>  
+            </div>
+          </div>
+      </div>
+    </main>
+    <footer>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.min.js"></script>
+    <script src="settings.js"></script>
+    <script src="main.js"></script>
+    
+  </body>
+</html>

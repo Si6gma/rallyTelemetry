@@ -1,6 +1,6 @@
 # Rally Telemetry Pro - RTOS Edition
 
-> High-performance telemetry data logger for rally cars with FreeRTOS, dual-core processing, and real-time streaming.
+> High-performance telemetry data logger for rally cars with FreeRTOS, dual-core processing, real-time streaming, and web dashboard.
 
 ## ✨ What's New in Pro Version
 
@@ -21,8 +21,9 @@
 | Latency | Variable | **Deterministic** |
 
 ### 🎯 New Features
+- **Web Dashboard** - Real-time visualization in browser
 - **Real-time Alerts** - G-force, roll, pitch thresholds with hysteresis
-- **WiFi Streaming** - UDP broadcast + Web dashboard
+- **WiFi Streaming** - UDP broadcast + live dashboard
 - **Binary Logging** - 80% smaller files with CRC32 integrity
 - **Log Rotation** - Automatic file management (50MB chunks)
 - **RGB LED Status** - Visual feedback for system state
@@ -41,8 +42,8 @@
 │                             │                                   │
 │  ┌─────────────────────┐    │   ┌─────────────────────┐         │
 │  │   Sensor Task       │    │   │   Logging Task      │         │
-│  │   - IMU @ 100Hz     │    │   │   - SD Card writes  │         │
-│  │   - GPS @ 10Hz      │──┐ │   │   - Buffer flush    │         │
+│  │   - IMU @ 100Hz     │    │   │   - SD writes       │         │
+│  │   - GPS @ 10Hz      │──┐ │   │   - 50Hz            │         │
 │  │   Priority: 24      │  │ │   │   Priority: 22      │         │
 │  └─────────────────────┘  │ │   └─────────────────────┘         │
 │            ↓              │ │            ↑                      │
@@ -108,6 +109,7 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 board_build.f_cpu = 240000000L
+board_build.partitions = default.csv
 build_flags = 
     -DCORE_DEBUG_LEVEL=3
     -DCONFIG_FREERTOS_UNICORE=0
@@ -116,9 +118,17 @@ lib_deps =
     adafruit/Adafruit Unified Sensor @ ^1.1.9
 ```
 
-2. **Build and Upload:**
+2. **Upload Filesystem (Dashboard):**
 ```bash
+# Upload dashboard files to SPIFFS
+pio run --target uploadfs
+
+# Then upload firmware
 pio run --target upload
+```
+
+3. **Monitor:**
+```bash
 pio device monitor
 ```
 
@@ -128,7 +138,8 @@ pio device monitor
 2. Install libraries: `Adafruit MPU6050`, `Adafruit Unified Sensor`
 3. Select board: `ESP32 Dev Module`
 4. Set CPU Frequency: `240MHz`
-5. Upload
+5. Use [ESP32 Sketch Data Upload](https://github.com/me-no-dev/arduino-esp32fs-plugin) for dashboard files
+6. Upload
 
 ## 💻 Usage
 
@@ -147,12 +158,23 @@ Password: rally2024
 IP: 192.168.4.1
 ```
 
-### Web Interface
+### Web Dashboard
 
-Open `http://192.168.4.1` in browser:
-- View system status
-- Download log files
-- Configure settings
+Open `http://192.168.4.1` or `http://rally-telemetry.local` in your browser:
+
+#### Features:
+- **Live Data** - Real-time G-force, speed, satellite count
+- **File Manager** - Download binary or CSV logs
+- **System Status** - View heap, WiFi mode, signal strength
+
+#### Dashboard Pages:
+| Page | URL | Description |
+|------|-----|-------------|
+| Main | `/` | Redirects to dashboard |
+| Dashboard | `/dashboard` | Live telemetry view |
+| Files | `/api/files` | Log file management |
+| Live API | `/api/live` | JSON telemetry data |
+| Status | `/status` | System status JSON |
 
 ### Serial Commands
 
@@ -173,9 +195,9 @@ Open `http://192.168.4.1` in browser:
 ```c
 struct TelemetryPacket {
     uint32_t magic;           // 'RALL' = 0x52414C4C
-    uint16_t version;         // Protocol version
-    uint16_t sequence;        // Packet sequence
-    uint32_t timestamp_ms;    // Milliseconds since boot
+    uint16_t version;
+    uint16_t sequence;
+    uint32_t timestamp_ms;
     
     // IMU Data (32 bytes)
     struct {
@@ -198,37 +220,42 @@ struct TelemetryPacket {
     } gps;
     
     uint16_t crc16;           // Data integrity
-} __attribute__((packed));
+} __attribute__((packed));    // 72 bytes total
 ```
 
-### Export to CSV
+### API Endpoints
 
-```bash
-# Use built-in export function
-curl http://192.168.4.1/download
+#### GET `/api/live`
+Returns current telemetry data as JSON:
+```json
+{
+  "timestamp": 12345,
+  "sequence": 100,
+  "imu": {
+    "ax": 0.123, "ay": -0.456, "az": 9.81,
+    "gx": 1.2, "gy": -0.5, "gz": 0.1,
+    "temp": 25.4
+  },
+  "gps": {
+    "lat": 40.7128, "lon": -74.0060,
+    "alt": 50.0, "speed": 85.5,
+    "heading": 180.0, "sats": 8, "fix": 1
+  }
+}
+```
 
-# Or programmatically (Python)
-import struct
+#### GET `/api/files`
+Lists available log files with download links.
 
-def read_binary_log(filename):
-    PACKET_SIZE = 72  # bytes
-    with open(filename, 'rb') as f:
-        # Skip header (64 bytes)
-        f.seek(64)
-        
-        while True:
-            data = f.read(PACKET_SIZE)
-            if len(data) < PACKET_SIZE:
-                break
-                
-            # Unpack binary data
-            magic, version, seq, ts = struct.unpack('<IHHI', data[:12])
-            if magic == 0x52414C4C:  # 'RALL'
-                # Parse IMU
-                ax, ay, az = struct.unpack('<fff', data[16:28])
-                # Parse GPS
-                lat, lon = struct.unpack('<dd', data[40:56])
-                print(f"{ts}: Pos=({lat:.6f}, {lon:.6f}), Accel=({ax:.2f}, {ay:.2f}, {az:.2f})")
+#### GET `/api/convert?file=/rally_000.bin`
+Converts binary log to CSV format for download.
+
+### CSV Export
+
+The firmware automatically converts binary to CSV on download. Format:
+```csv
+Timestamp,AccelX,AccelY,AccelZ,GyroX,GyroY,GyroZ,TempC,Latitude,Longitude,Altitude,SpeedKmh,Heading,Satellites,FixQuality
+12345,0.123,-0.456,9.81,1.2,-0.5,0.1,25.4,40.712800,-74.006000,50.0,85.5,180.0,8,1
 ```
 
 ## ⚙️ Configuration
@@ -303,6 +330,10 @@ const char* WIFI_AP_PASS = "rally2024";
 - Default AP mode always works
 - Check STA credentials for client mode
 
+### "Dashboard not loading"
+- Upload SPIFFS filesystem: `pio run --target uploadfs`
+- Check files exist in `data/dashboard/`
+
 ## 🗺️ Roadmap
 
 ### v2.1 Planned
@@ -349,6 +380,37 @@ Ring buffers between tasks provide:
 - **Decoupling**: Tasks run at different rates
 - **Resilience**: Brief slowdowns don't lose data
 - **Zero-copy**: Pointers passed, not data copied
+
+## 📁 Project Structure
+
+```
+rallyTelemetry-RTOS/
+├── rallyTelemetryRTOS.ino      # Main entry point
+├── data/
+│   └── dashboard/              # Web dashboard files
+│       ├── index.html          # Dashboard UI
+│       ├── main.js             # Chart.js visualization
+│       ├── settings.js         # Configuration
+│       └── styles.css          # Styling
+├── README.md                    # This file
+├── UPGRADE_SUMMARY.md           # v1.0 vs v2.0 comparison
+└── src/
+    ├── core/
+    │   ├── config.h            # RTOS config + data structures
+    │   ├── SystemState.h/cpp   # State machine
+    │   └── Tasks.h/cpp         # All task implementations
+    ├── sensors/
+    │   ├── imu.h/cpp           # 100Hz + calibration
+    │   └── gps.h/cpp           # 10Hz + VTG parsing
+    ├── storage/
+    │   └── BinaryLogger.h/cpp  # Binary + rotation
+    ├── telemetry/
+    │   └── WiFiTelemetry.h/cpp # UDP + Web dashboard
+    ├── alerts/
+    │   └── AlertManager.h/cpp  # Threshold alerts
+    └── utils/
+        └── RingBuffer.h        # Thread-safe buffers
+```
 
 ## 📝 License
 
