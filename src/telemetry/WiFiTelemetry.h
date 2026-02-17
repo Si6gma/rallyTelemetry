@@ -122,7 +122,7 @@ public:
     // TCP server management
     void updateTCPClients();
     void disconnectAllClients();
-    int getConnectedClientCount() const;
+    int getConnectedClientCount();
     
     // Status
     bool isConnected() const;
@@ -136,5 +136,5 @@ public:
     
     // Utility
     static String signalStrengthToString(int rssi);
-    static int getSignalStrength();
+    int getSignalStrength();
 };

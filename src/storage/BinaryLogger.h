@@ -48,7 +48,7 @@ private:
     TelemetryPacket writeBuffer1[WRITE_BUFFER_SIZE];
     TelemetryPacket writeBuffer2[WRITE_BUFFER_SIZE];
     TelemetryPacket* activeBuffer = writeBuffer1;
-    TelemetryPacket* flushBuffer = nullptr;
+    TelemetryPacket* flushBufferPtr = nullptr;
     size_t bufferCount = 0;
     
     SemaphoreHandle_t bufferMutex = nullptr;
@@ -70,7 +70,7 @@ private:
     
     bool openNewFile();
     bool rotateFile();
-    void flushBuffer();
+    void flushWriteBuffer();
     uint32_t calculateCRC32(const void* data, size_t length);
     uint32_t calculatePacketCRC(const TelemetryPacket& packet);
     

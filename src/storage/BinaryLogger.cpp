@@ -172,7 +172,7 @@ bool BinaryLogger::write(const TelemetryPacket& packet) {
     return true;
 }
 
-void BinaryLogger::flushBuffer() {
+void BinaryLogger::flushWriteBuffer() {
     if (bufferCount == 0) return;
     
     // Write all packets in buffer
@@ -196,7 +196,7 @@ bool BinaryLogger::flush() {
     
     xSemaphoreTake(bufferMutex, portMAX_DELAY);
     
-    flushBuffer();
+    flushWriteBuffer();
     currentFile.flush();
     stats.flushCount++;
     

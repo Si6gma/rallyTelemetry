@@ -209,7 +209,7 @@ void loggingTask(void* pvParameters) {
 void telemetryTask(void* pvParameters) {
     TaskParameters* params = (TaskParameters*)pvParameters;
     WiFiTelemetry* telemetry = params->telemetry;
-    RingBuffer<TelemetryPacket, TELEMETRY_BUFFER_SIZE>* logBuffer = params->logBuffer;
+    // Note: params->logBuffer uses LOG_BUFFER_SIZE (128)
     SystemStateManager* state = params->state;
     
     TelemetryPacket packet;

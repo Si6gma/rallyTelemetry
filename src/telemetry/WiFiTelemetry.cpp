@@ -56,7 +56,7 @@ bool WiFiTelemetry::begin(WiFiMode wifiMode) {
             DEBUG_PRINTF(3, "  IP: %s\n", WiFi.softAPIP().toString().c_str());
             break;
             
-        case WiFiMode::STA_MODE:
+        case WiFiMode::STA_MODE: {
             if (strlen(staSSID) == 0) {
                 DEBUG_PRINTLN(1, "STA mode requires SSID configuration!");
                 return false;
@@ -79,6 +79,7 @@ bool WiFiTelemetry::begin(WiFiMode wifiMode) {
             }
             DEBUG_PRINTF(3, "Connected, IP: %s\n", WiFi.localIP().toString().c_str());
             break;
+        }
             
         case WiFiMode::AP_STA_MODE:
             WiFi.mode(WIFI_AP_STA);
@@ -569,11 +570,7 @@ bool WiFiTelemetry::streamRaw(const uint8_t* data, size_t len) {
     lastPacketTime = now;
     
     // UDP broadcast/multicast
-    if (udpBroadcast) {
-        udp.beginPacketMulticast(udpAddress, udpPort, WiFi.localIP());
-    } else {
-        udp.beginPacket(udpAddress, udpPort);
-    }
+    udp.beginPacket(udpAddress, udpPort);
     udp.write(data, len);
     bool success = udp.endPacket() == 1;
     
@@ -614,7 +611,7 @@ void WiFiTelemetry::disconnectAllClients() {
     }
 }
 
-int WiFiTelemetry::getConnectedClientCount() const {
+int WiFiTelemetry::getConnectedClientCount() {
     int count = 0;
     for (int i = 0; i < MAX_TCP_CLIENTS; i++) {
         if (tcpClients[i].connected()) count++;
@@ -663,7 +660,6 @@ void WiFiTelemetry::handleWebClient() {
     if (webServer) {
         webServer->handleClient();
     }
-    MDNS.update();
 }
 
 String WiFiTelemetry::signalStrengthToString(int rssi) {
